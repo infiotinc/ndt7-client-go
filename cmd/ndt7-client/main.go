@@ -87,6 +87,8 @@ const (
 )
 
 var (
+	flagUpload   = flag.Bool("upload", false, "run only an upload test")
+	flagDownload = flag.Bool("download", false, "run only a download test")
 	flagBatch    = flag.Bool("batch", false, "emit JSON events on stdout")
 	flagNoVerify = flag.Bool("no-verify", false, "skip TLS certificate verification")
 	flagHostname = flag.String("hostname", "", "optional ndt7 server hostname")
@@ -168,6 +170,12 @@ func main() {
 		r.emitter = emitter.NewBatch()
 	} else {
 		r.emitter = emitter.NewInteractive()
+	}
+	if *flagUpload {
+		osExit(r.runUpload(ctx))
+	}
+	if *flagDownload {
+		osExit(r.runDownload(ctx))
 	}
 	osExit(r.runDownload(ctx) + r.runUpload(ctx))
 }
