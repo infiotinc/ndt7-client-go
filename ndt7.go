@@ -11,6 +11,7 @@ package ndt7
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -127,6 +128,42 @@ func NewClient(clientName, clientVersion string) *Client {
 			dialer websocket.Dialer, ctx context.Context, urlStr string,
 			requestHeader http.Header) (*websocket.Conn, *http.Response, error,
 		) {
+			return dialer.DialContext(ctx, urlStr, requestHeader)
+		},
+		Dialer: websocket.Dialer{
+			HandshakeTimeout: DefaultWebSocketHandshakeTimeout,
+		},
+		download: download.Run,
+		locate: func(ctx context.Context, c *mlabns.Client) (string, error) {
+			return c.Query(ctx)
+		},
+		MLabNSClient: mlabns.NewClient(
+			"ndt7", makeUserAgent(clientName, clientVersion),
+		),
+		upload:  upload.Run,
+		Scheme:  "wss",
+		results: results,
+	}
+}
+
+// NewClientEx creates a new client instance identified by the specified
+// clientName and clientVersion. M-Lab services may reject requests coming
+// from clients that do not identify themselves properly.
+func NewClientEx(clientName, clientVersion string, sourceIP string) *Client {
+	results := map[spec.TestKind]*LatestMeasurements{
+		spec.TestDownload: &LatestMeasurements{},
+		spec.TestUpload:   &LatestMeasurements{},
+	}
+	return &Client{
+		ClientName:    clientName,
+		ClientVersion: clientVersion,
+		connect: func(
+			dialer websocket.Dialer, ctx context.Context, urlStr string,
+			requestHeader http.Header) (*websocket.Conn, *http.Response, error,
+		) {
+			addr := net.ParseIP(sourceIP)
+			dialer.NetDialContext =
+				(&net.Dialer{LocalAddr: &net.TCPAddr{IP: addr}}).DialContext
 			return dialer.DialContext(ctx, urlStr, requestHeader)
 		},
 		Dialer: websocket.Dialer{
