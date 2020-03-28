@@ -113,6 +113,7 @@ var (
 	flagTimeout  = flag.Duration(
 		"timeout", defaultTimeout, "time after which the test is aborted")
 	flagQuiet = flag.Bool("quiet", false, "emit summary and errors only")
+	flagSourceIP = flag.String("sip", "", "source IP to bind to")
 )
 
 func init() {
@@ -253,7 +254,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), *flagTimeout)
 	defer cancel()
 	var r runner
-	r.client = ndt7.NewClient(clientName, clientVersion)
+	if len(*flagSourceIP) > 0 {
+		r.client = ndt7.NewClientEx(clientName, clientVersion, *flagSourceIP)
+	} else {
+		r.client = ndt7.NewClient(clientName, clientVersion)
+	}
 	r.client.Scheme = flagScheme.Value
 	r.client.Dialer.TLSClientConfig = &tls.Config{
 		InsecureSkipVerify: *flagNoVerify,
